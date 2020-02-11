@@ -28,8 +28,6 @@ con = create_engine(url, client_encoding='utf8')
 # selection criteria
 begindate = '2019-06-09 00:00:00'
 enddate = '2019-06-10 00:00:00'
-vesseltype = '*'
-hazardouscargo = '*'
 
 # extract all ship names that are considered hazardous cargo
 hazardous_query = '''

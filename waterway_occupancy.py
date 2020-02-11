@@ -15,6 +15,8 @@ from osgeo import gdal, ogr, osr
 from shapely import wkb, wkt
 from add_rasters import add_rasters
 
+workspace = r'D:\Users\krob\Documents\AIS\Scripts\output_rws\track_tiff\individual_rasters'
+
 # postgres settings
 user = 'postgres'
 password = getpass.getpass()
@@ -27,13 +29,18 @@ url = 'postgresql://{}:{}@{}:{}/{}'.format(user, password, host, port, db)
 con = create_engine(url, client_encoding='utf8')
 
 # selection criteria
-filen = '10JuneAllShips'
-begindates = ['2019-06-09 04:00:00' , '2019-06-09 06:00:00', '2019-06-09 08:00:00', '2019-06-09 10:00:00', '2019-06-09 12:00:00', '2019-06-09 14:00:00', '2019-06-09 16:00:00', '2019-06-09 18:00:00', '2019-06-09 20:00:00', '2019-06-09 22:00:00']
-enddates = ['2019-06-09 06:00:00', '2019-06-09 08:00:00', '2019-06-09 10:00:00', '2019-06-09 12:00:00', '2019-06-09 14:00:00', '2019-06-09 16:00:00', '2019-06-09 18:00:00', '2019-06-09 20:00:00', '2019-06-09 22:00:00', '2019-06-10 00:00:00']
-vesseltype = '*'
-hazardouscargo = '*'
+begindates = ['2019-06-09 04:00:00' , '2019-06-09 06:00:00', '2019-06-09 08:00:00', \
+    '2019-06-09 10:00:00', '2019-06-09 12:00:00', '2019-06-09 14:00:00', '2019-06-09 16:00:00', \
+    '2019-06-09 18:00:00', '2019-06-09 20:00:00', '2019-06-09 22:00:00']
+enddates = ['2019-06-09 06:00:00', '2019-06-09 08:00:00', '2019-06-09 10:00:00', \
+    '2019-06-09 12:00:00', '2019-06-09 14:00:00', '2019-06-09 16:00:00', '2019-06-09 18:00:00', \
+    '2019-06-09 20:00:00', '2019-06-09 22:00:00', '2019-06-10 00:00:00']
+vesseltype = 79 # example
+hazardouscargo = 5 # example
 
-# # uncomment lines 38 - 46 in order to extract query-based pandas dataframe from psql database
+###################################################################################################
+# # uncomment lines 42 - 50 in order to extract query-based pandas dataframe from psql database
+###################################################################################################
 
 # for index, row in df.iterrows():
 #     try:
@@ -43,7 +50,8 @@ hazardouscargo = '*'
 #         shape = 'point'
 #         df['shape'] = shape
 
-# df.to_csv(r'D:\Users\krob\Documents\AIS\Scripts\output_rws\TEST_8_1.csv')
+# df.to_csv(r'{}\TEST_8_1.csv'.format(workspace))
+###################################################################################################
 
 # # create raster layer
 for first_index, begindate in enumerate(begindates):
@@ -60,10 +68,30 @@ for first_index, begindate in enumerate(begindates):
         GROUP BY name
     """.format(begindate, enddate)
 
+    ###############################################################################################
+    # # The query used for the research does not select based on vesseltype or hazardouscargo. 
+    # # In case one or either of these two properties is set, use an alternate query with an extra
+    # # where clause as shown below. Multiple vesseltypes/types of hazardous cargo can be 
+    # # selected by adding multiple integers, separated by a comma, such as: 50, 79
+    ###############################################################################################
+    # total_query = """
+    #     SELECT 
+    #         ships.name, 
+    #         ST_AsText(ST_MakeLine(ships.geom ORDER BY timestamp)) As geom
+    #     FROM ships
+    #     WHERE ST_Intersects(ST_SetSRID(
+    #             ST_MakeBox2D(St_MakePoint(5.710553, 52.844946), ST_MakePoint(6.9244598, 53.3310272)), 4326), ships.geom)
+    #         AND timestamp BETWEEN '{}' AND '{}'
+    #         AND vesseltype in ({})
+    #         AND hazardouscargo in ({})
+    #     GROUP BY name
+    # """.format(begindate, enddate, vesseltype, hazardouscargo)
+    ###############################################################################################
+
     df = pd.read_sql_query(total_query, con=con)
 
-    if not os.path.exists('D:\\Users\\krob\\Documents\\AIS\\Scripts\\output_rws\\track_tiff\\individual_rasters\\{}'.format(first_index)):
-        os.mkdir("D:\\Users\\krob\\Documents\\AIS\\Scripts\\output_rws\\track_tiff\\individual_rasters\\{}".format(first_index))
+    if not os.path.exists(r'{}\{}'.format(workspace, first_index)):
+        os.mkdir(r"{}\{}".format(workspace, first_index))
 
     for second_index, row in df.iterrows():
         # set spatial reference system
@@ -72,7 +100,7 @@ for first_index, begindate in enumerate(begindates):
         sr_wkt = srs.ExportToWkt()
 
         # create memory raster
-        output = "D:\\Users\\krob\\Documents\\AIS\\Scripts\\output_rws\\track_tiff\\individual_rasters\\{}\\{}_0025_individualTest.tif".format(first_index, second_index)
+        output = r"{}\{}\{}_0025_individualTest.tif".format(workspace, first_index, second_index)
         pixel_size = 0.025
         extent_shp = ogr.Open(r"D:\Users\krob\Documents\AIS\extent.shp")
         extent_layer = extent_shp.GetLayer()
@@ -97,4 +125,4 @@ for first_index, begindate in enumerate(begindates):
         # gdal.RasterizeLayer(target_ds, [1], rast_mem_lyr, burn_values=[1], options=['noData=0', 'MERGE_ALG=ADD', 'ALL_TOUCHED=TRUE'])
         temp_rast = gdal.RasterizeLayer(target_ds, [1], rast_mem_lyr, burn_values=[1], options=['noData=0', 'ALL_TOUCHED=TRUE'])
 
-add_rasters("D:\\Users\\krob\\Documents\\AIS\\Scripts\\output_rws\\track_tiff\\individual_rasters")
+add_rasters(workspace)

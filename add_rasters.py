@@ -8,11 +8,11 @@ import functools
 import numpy as np
 from osgeo import gdal, osr, ogr
 
-def add_rasters(base_path="D:\\Users\\krob\\Documents\\AIS\\Scripts\\output_rws\\track_tiff\\individual_rasters"):
+def add_rasters(base_path=r"D:\Users\krob\Documents\AIS\Scripts\output_rws\track_tiff\individual_rasters"):
     for counter, directory in enumerate(os.listdir(base_path)):
         
         # settings for output raster layer
-        output = "D:\\Users\\krob\\Documents\\AIS\\Scripts\\output_rws\\track_tiff\\total_rasters\{}_wgs84.tif".format(directory)
+        output = r"D:\Users\krob\Documents\AIS\Scripts\output_rws\track_tiff\total_rasters\{}_wgs84.tif".format(directory)
         pixel_size = 0.025
 
         extent_shp = ogr.Open(r"D:\Users\krob\Documents\AIS\extent.shp")
@@ -30,9 +30,9 @@ def add_rasters(base_path="D:\\Users\\krob\\Documents\\AIS\\Scripts\\output_rws\
         srs.ImportFromEPSG(4326)
         dest_wkt = srs.ExportToWkt()
 
-        for counter, filen in enumerate(os.listdir('{}\{}'.format(base_path, directory))):
+        for counter, filen in enumerate(os.listdir(r'{}\{}'.format(base_path, directory))):
             # open raster file
-            workfile = '{}\{}\{}'.format(base_path, directory, filen)
+            workfile = r'{}\{}\{}'.format(base_path, directory, filen)
             raster = gdal.Open(workfile, gdal.GA_Update)
 
             # set spatial reference
